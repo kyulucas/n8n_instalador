@@ -3,7 +3,7 @@
 ## 1. Baixar o projeto
 
 ```bash
-cd /opt
+cd ~
 git clone https://github.com/kyulucas/n8n_instalador.git n8n
 cd n8n
 ```
