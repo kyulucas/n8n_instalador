@@ -1,0 +1,92 @@
+# n8n + PostgreSQL + Redis — Docker Compose (sem Swarm, sem Traefik)
+# Uso: cp .env.example .env  →  edite .env  →  docker compose up -d
+#
+# Editor:  http://<N8N_HOST>:5678
+# Webhooks: http://<N8N_HOST>:5679
+
+x-n8n-common: &n8n-common
+  image: n8nio/n8n:latest
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  environment: &n8n-env
+    DB_TYPE: postgresdb
+    DB_POSTGRESDB_HOST: postgres
+    DB_POSTGRESDB_PORT: 5432
+    DB_POSTGRESDB_DATABASE: n8n
+    DB_POSTGRESDB_USER: postgres
+    DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+    N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+    N8N_HOST: ${N8N_HOST}
+    N8N_PORT: 5678
+    N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+    N8N_EDITOR_BASE_URL: ${N8N_EDITOR_BASE_URL}
+    WEBHOOK_URL: ${WEBHOOK_URL}
+    EXECUTIONS_MODE: queue
+    QUEUE_BULL_REDIS_HOST: redis
+    QUEUE_BULL_REDIS_PORT: 6379
+    QUEUE_BULL_REDIS_DB: 0
+    NODE_FUNCTION_ALLOW_EXTERNAL: moment,lodash,moment-with-locales
+    EXECUTIONS_DATA_PRUNE: "true"
+    EXECUTIONS_DATA_MAX_AGE: "336"
+    GENERIC_TIMEZONE: America/Sao_Paulo
+    TZ: America/Sao_Paulo
+    N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+    N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+    NODES_EXCLUDE: "[]"
+    N8N_SKIP_AUTH_ON_OAUTH_CALLBACK: "false"
+    N8N_RUNNERS_ENABLED: "true"
+  volumes:
+    - n8n_data:/home/node/.n8n
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n_editor:
+    <<: *n8n-common
+    command: start
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+
+  n8n_webhook:
+    <<: *n8n-common
+    command: webhook
+    ports:
+      - "${WEBHOOK_PORT:-5679}:5678"
+
+  n8n_worker:
+    <<: *n8n-common
+    command: worker --concurrency=${N8N_WORKER_CONCURRENCY:-10}
+
+volumes:
+  postgres_data:
+  redis_data:
+  n8n_data:

@@ -1,0 +1,17 @@
+# Portainer (opcional) — use junto com a stack principal:
+#   docker compose -f docker-compose.yml -f docker-compose.portainer.yml up -d
+#
+# Acesse: http://<IP_DO_SERVIDOR>:9000
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    ports:
+      - "${PORTAINER_PORT:-9000}:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+volumes:
+  portainer_data:
