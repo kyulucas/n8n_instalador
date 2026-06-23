@@ -32,8 +32,7 @@ openssl rand -hex 32
 
 ## 4. Acessar
 
-- Editor: `http://<IP>:5678`
-- Webhooks: `http://<IP>:5679`
+- Editor e webhooks: `http://<IP>:5678`
 
 Na primeira visita, crie o usuário administrador.
 
@@ -41,6 +40,6 @@ Na primeira visita, crie o usuário administrador.
 
 ```bash
 docker compose ps
-docker compose logs -f n8n_editor
+docker compose logs -f n8n
 docker compose down
 ```
